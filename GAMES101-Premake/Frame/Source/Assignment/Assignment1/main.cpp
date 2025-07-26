@@ -11,8 +11,11 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
     Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
 
     Eigen::Matrix4f translate;
-    translate << 1, 0, 0, -eye_pos[0], 0, 1, 0, -eye_pos[1], 0, 0, 1,
-        -eye_pos[2], 0, 0, 0, 1;
+    translate <<
+        1, 0, 0, -eye_pos[0],
+        0, 1, 0, -eye_pos[1],
+        0, 0, 1, -eye_pos[2],
+        0, 0, 0, 1;
 
     view = translate * view;
 
@@ -23,25 +26,51 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
 
-    // TODO: Implement this function
-    // Create the model matrix for rotating the triangle around the Z axis.
-    // Then return it.
+    model <<
+        std::cos(rotation_angle), -std::sin(rotation_angle), 0, 0,
+        std::sin(rotation_angle), std::cos(rotation_angle), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1;
 
     return model;
 }
 
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
-                                      float zNear, float zFar)
+    float zNear, float zFar)
 {
-    // Students will implement this function
+    // 由 frustum 的定义得 top 与 right
+    float top = std::tan(zFar * 0.5f * MY_PI / 180.0f) * std::abs(zNear);
+    float right = aspect_ratio * top;
 
-    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    // 由相机此时的位置与方向得 bottom = -top 与 left = -right
+    float bottom = -top;
+    float left = -right;
 
-    // TODO: Implement this function
-    // Create the projection matrix for the given parameters.
-    // Then return it.
+    Eigen::Matrix4f Mp2o;
+    Mp2o <<
+        zNear, 0.0f, 0.0f, 0.0f,
+        0.0f, zNear, 0.0f, 0.0f,
+        0.0f, 0.0f, zNear + zFar, -zNear * zFar,
+        0.0f, 0.0f, 1.0f, 0.0f;
 
-    return projection;
+    Eigen::Matrix4f Mtrans;
+    Mtrans <<
+        1.0f, 0.0f, 0.0f, (right + left) * -0.5f,
+        0.0f, 1.0f, 0.0f, (top + bottom) * -0.5f,
+        0.0f, 0.0f, 1.0f, (zNear + zFar) * -0.5f,
+        0.0f, 0.0f, 0.0f, 1.0f;
+
+    Eigen::Matrix4f Mrotate;
+    Mrotate <<
+        2.0f / (right - left), 0.0f, 0.0f, 0.0f,
+        0.0f, 2.0f / (top - bottom), 0.0f, 0.0f,
+        0.0f, 0.0f, 2.0f / (zNear - zFar), 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f;
+
+    Eigen::Matrix4f Morthographic = Mrotate * Mtrans;
+    Eigen::Matrix4f Mprojection = Morthographic * Mp2o;
+
+    return Mprojection;
 }
 
 int main(int argc, const char** argv)
@@ -60,11 +89,11 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    Eigen::Vector3f eye_pos = {0, 0, 5};
+    Eigen::Vector3f eye_pos = { 0, 0, 5 };
 
-    std::vector<Eigen::Vector3f> pos{{2, 0, -2}, {0, 2, -2}, {-2, 0, -2}};
+    std::vector<Eigen::Vector3f> pos{ {2, 0, -2}, {0, 2, -2}, {-2, 0, -2} };
 
-    std::vector<Eigen::Vector3i> ind{{0, 1, 2}};
+    std::vector<Eigen::Vector3i> ind{ {0, 1, 2} };
 
     auto pos_id = r.load_positions(pos);
     auto ind_id = r.load_indices(ind);
