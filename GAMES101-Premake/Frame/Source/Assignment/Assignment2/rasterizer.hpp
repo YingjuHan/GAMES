@@ -99,5 +99,7 @@ namespace rst
 
         int next_id = 0;
         int get_next_id() { return next_id++; }
+
+        Eigen::Vector4f to_vec4(const const Eigen::Vector3f& v3, float w = 1.0f);
     };
 }
