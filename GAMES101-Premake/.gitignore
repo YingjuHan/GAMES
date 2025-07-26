@@ -1,0 +1,12 @@
+build
+bin
+int
+.cache
+.vs
+
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+!Frame/Source/ThirdParty/glew/build
