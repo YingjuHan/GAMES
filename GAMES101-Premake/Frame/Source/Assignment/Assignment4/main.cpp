@@ -1,5 +1,7 @@
 #include <chrono>
 #include <iostream>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
 std::vector<cv::Point2f> control_points;
@@ -30,18 +32,60 @@ void naive_bezier(const std::vector<cv::Point2f> &points, cv::Mat &window)
     }
 }
 
+cv::Point2f LerpPoint2f(const cv::Point2f& a, const cv::Point2f& b, float t)
+{
+    return a + t * (b - a);
+}
+
 cv::Point2f recursive_bezier(const std::vector<cv::Point2f> &control_points, float t) 
 {
-    // TODO: Implement de Casteljau's algorithm
-    return cv::Point2f();
+    if (control_points.size() == 2)
+    {
+        return LerpPoint2f(control_points[0], control_points[1], t);
+    }
+
+    std::vector<cv::Point2f> temp;
+    for (size_t i = 0; i < control_points.size() - 1; ++i)
+    {
+        temp.emplace_back(LerpPoint2f(control_points[i], control_points[i + 1], t));
+    }
+
+    return recursive_bezier(temp, t);
 
 }
 
 void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window) 
 {
-    // TODO: Iterate through all t = 0 to t = 1 with small steps, and call de Casteljau's 
-    // recursive Bezier algorithm.
+    float filter[3][3] = {
+        0.2f, 0.5f, 0.2f,
+        0.5f, 1.0f, 0.5f,
+        0.2f, 0.5f, 0.2f
+    };
 
+    Eigen::Vector2i offset[3][3] = {
+        Eigen::Vector2i{-1, 1}, Eigen::Vector2i{0, 1}, Eigen::Vector2i{1, 1},
+        Eigen::Vector2i{-1, 0}, Eigen::Vector2i{0, 0}, Eigen::Vector2i{1, 0},
+        Eigen::Vector2i{-1, -1}, Eigen::Vector2i{0, -1}, Eigen::Vector2i{1, -1},
+    };
+
+    for (float t = 0.0; t <= 1.0; t += 0.001)
+    {
+        cv::Point2f p = recursive_bezier(control_points, t);
+        Eigen::Vector2i point{ p.x, p.y };
+
+        for (size_t i = 0; i < 3; ++i)
+        {
+            for (size_t j = 0; j < 3; ++j)
+            {
+                int x_index = point.x() + offset[i][j].x();
+                int y_index = point.y() + offset[i][j].y();
+
+                // OpenCV 会使一个像素点的值 mod 255
+                uchar color = std::max(static_cast<uchar>(filter[i][j] * 255), window.at<cv::Vec3b>(y_index, x_index)[1]);
+                window.at<cv::Vec3b>(y_index, x_index)[1] = std::min(static_cast<uchar>(255), color);
+            }
+        }
+    }
 }
 
 int main() 
