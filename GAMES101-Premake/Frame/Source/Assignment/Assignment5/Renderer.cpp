@@ -141,17 +141,32 @@ Vector3f castRay(
         switch (payload->hit_obj->materialType) {
             case REFLECTION_AND_REFRACTION:
             {
+                // 反射
                 Vector3f reflectionDirection = normalize(reflect(dir, N));
+                
+                // 折射
                 Vector3f refractionDirection = normalize(refract(dir, N, payload->hit_obj->ior));
+                
+                // 反射光线的起始点
                 Vector3f reflectionRayOrig = (dotProduct(reflectionDirection, N) < 0) ?
                                              hitPoint - N * scene.epsilon :
                                              hitPoint + N * scene.epsilon;
+
+                // 折射光线的起始点
                 Vector3f refractionRayOrig = (dotProduct(refractionDirection, N) < 0) ?
                                              hitPoint - N * scene.epsilon :
                                              hitPoint + N * scene.epsilon;
+
+                // 反射颜色
                 Vector3f reflectionColor = castRay(reflectionRayOrig, reflectionDirection, scene, depth + 1);
+
+                // 折射颜色
                 Vector3f refractionColor = castRay(refractionRayOrig, refractionDirection, scene, depth + 1);
+
+                // 反射率计算
                 float kr = fresnel(dir, N, payload->hit_obj->ior);
+
+                // 混合反射和折射颜色
                 hitColor = reflectionColor * kr + refractionColor * (1 - kr);
                 break;
             }
@@ -165,7 +180,7 @@ Vector3f castRay(
                 hitColor = castRay(reflectionRayOrig, reflectionDirection, scene, depth + 1) * kr;
                 break;
             }
-            default:
+            default: // DIFFUSE_AND_GLOSSY
             {
                 // [comment]
                 // We use the Phong illumation model int the default case. The phong model
@@ -227,10 +242,9 @@ void Renderer::Render(const Scene& scene)
             // generate primary ray direction
             float x = 0.0f;
             float y = 0.0f;
-            // TODO: Find the x and y positions of the current pixel to get the direction
-            // vector that passes through it.
-            // Also, don't forget to multiply both of them with the variable *scale*, and
-            // x (horizontal) variable with the *imageAspectRatio*            
+
+            x = (2 * ((i + 0.5) / scene.width) - 1) * scale * imageAspectRatio;
+            y = (1.0f - 2.0f * ((j + 0.5) / (float)scene.height)) * scale;
 
             Vector3f dir = Vector3f(x, y, -1); // Don't forget to normalize this direction!
             framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
