@@ -32,9 +32,9 @@ public:
     Bounds3 WorldBound() const;
     ~BVHAccel();
 
-    Intersection Intersect(const Ray &ray) const;
+    Intersection Intersect(const Ray& ray) const;
     Intersection getIntersection(BVHBuildNode* node, const Ray& ray)const;
-    bool IntersectP(const Ray &ray) const;
+    bool IntersectP(const Ray& ray) const;
     BVHBuildNode* root;
 
     // BVHAccel Private Methods
@@ -48,16 +48,16 @@ public:
 
 struct BVHBuildNode {
     Bounds3 bounds;
-    BVHBuildNode *left;
-    BVHBuildNode *right;
+    BVHBuildNode* left;
+    BVHBuildNode* right;
     Object* object;
 
 public:
-    int splitAxis=0, firstPrimOffset=0, nPrimitives=0;
+    int splitAxis = 0, firstPrimOffset = 0, nPrimitives = 0;
     // BVHBuildNode Public Methods
-    BVHBuildNode(){
+    BVHBuildNode() {
         bounds = Bounds3();
-        left = nullptr;right = nullptr;
+        left = nullptr; right = nullptr;
         object = nullptr;
     }
 };
