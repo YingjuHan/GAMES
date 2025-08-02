@@ -10,8 +10,8 @@
 #include <array>
 
 bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1,
-                          const Vector3f& v2, const Vector3f& orig,
-                          const Vector3f& dir, float& tnear, float& u, float& v)
+    const Vector3f& v2, const Vector3f& orig,
+    const Vector3f& dir, float& tnear, float& u, float& v)
 {
     Vector3f edge1 = v1 - v0;
     Vector3f edge2 = v2 - v0;
@@ -55,16 +55,16 @@ public:
         e1 = v1 - v0;
         e2 = v2 - v0;
         normal = normalize(crossProduct(e1, e2));
-        area = crossProduct(e1, e2).norm()*0.5f;
+        area = crossProduct(e1, e2).norm() * 0.5f;
     }
 
     bool intersect(const Ray& ray) override;
     bool intersect(const Ray& ray, float& tnear,
-                   uint32_t& index) const override;
+        uint32_t& index) const override;
     Intersection getIntersection(Ray ray) override;
     void getSurfaceProperties(const Vector3f& P, const Vector3f& I,
-                              const uint32_t& index, const Vector2f& uv,
-                              Vector3f& N, Vector2f& st) const override
+        const uint32_t& index, const Vector2f& uv,
+        Vector3f& N, Vector2f& st) const
     {
         N = normal;
         //        throw std::runtime_error("triangle::getSurfaceProperties not
@@ -72,16 +72,19 @@ public:
     }
     Vector3f evalDiffuseColor(const Vector2f&) const override;
     Bounds3 getBounds() override;
-    void Sample(Intersection &pos, float &pdf){
+    void Sample(Intersection& pos, float& pdf)
+    {
         float x = std::sqrt(get_random_float()), y = get_random_float();
         pos.coords = v0 * (1.0f - x) + v1 * (x * (1.0f - y)) + v2 * (x * y);
         pos.normal = this->normal;
         pdf = 1.0f / area;
     }
-    float getArea(){
+    float getArea()
+    {
         return area;
     }
-    bool hasEmit(){
+    bool hasEmit()
+    {
         return m->hasEmission();
     }
 };
@@ -89,7 +92,7 @@ public:
 class MeshTriangle : public Object
 {
 public:
-    MeshTriangle(const std::string& filename, Material *mt = new Material())
+    MeshTriangle(const std::string& filename, Material* mt = new Material())
     {
         objl::Loader loader;
         loader.LoadFile(filename);
@@ -98,37 +101,40 @@ public:
         assert(loader.LoadedMeshes.size() == 1);
         auto mesh = loader.LoadedMeshes[0];
 
-        Vector3f min_vert = Vector3f{std::numeric_limits<float>::infinity(),
+        Vector3f min_vert = Vector3f{ std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity(),
-                                     std::numeric_limits<float>::infinity()};
-        Vector3f max_vert = Vector3f{-std::numeric_limits<float>::infinity(),
+                                     std::numeric_limits<float>::infinity() };
+        Vector3f max_vert = Vector3f{ -std::numeric_limits<float>::infinity(),
                                      -std::numeric_limits<float>::infinity(),
-                                     -std::numeric_limits<float>::infinity()};
-        for (int i = 0; i < mesh.Vertices.size(); i += 3) {
+                                     -std::numeric_limits<float>::infinity() };
+        for (int i = 0; i < mesh.Vertices.size(); i += 3)
+        {
             std::array<Vector3f, 3> face_vertices;
 
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j < 3; j++)
+            {
                 auto vert = Vector3f(mesh.Vertices[i + j].Position.X,
-                                     mesh.Vertices[i + j].Position.Y,
-                                     mesh.Vertices[i + j].Position.Z);
+                    mesh.Vertices[i + j].Position.Y,
+                    mesh.Vertices[i + j].Position.Z);
                 face_vertices[j] = vert;
 
                 min_vert = Vector3f(std::min(min_vert.x, vert.x),
-                                    std::min(min_vert.y, vert.y),
-                                    std::min(min_vert.z, vert.z));
+                    std::min(min_vert.y, vert.y),
+                    std::min(min_vert.z, vert.z));
                 max_vert = Vector3f(std::max(max_vert.x, vert.x),
-                                    std::max(max_vert.y, vert.y),
-                                    std::max(max_vert.z, vert.z));
+                    std::max(max_vert.y, vert.y),
+                    std::max(max_vert.z, vert.z));
             }
 
             triangles.emplace_back(face_vertices[0], face_vertices[1],
-                                   face_vertices[2], mt);
+                face_vertices[2], mt);
         }
 
         bounding_box = Bounds3(min_vert, max_vert);
 
         std::vector<Object*> ptrs;
-        for (auto& tri : triangles){
+        for (auto& tri : triangles)
+        {
             ptrs.push_back(&tri);
             area += tri.area;
         }
@@ -140,14 +146,16 @@ public:
     bool intersect(const Ray& ray, float& tnear, uint32_t& index) const
     {
         bool intersect = false;
-        for (uint32_t k = 0; k < numTriangles; ++k) {
+        for (uint32_t k = 0; k < numTriangles; ++k)
+        {
             const Vector3f& v0 = vertices[vertexIndex[k * 3]];
             const Vector3f& v1 = vertices[vertexIndex[k * 3 + 1]];
             const Vector3f& v2 = vertices[vertexIndex[k * 3 + 2]];
             float t, u, v;
             if (rayTriangleIntersect(v0, v1, v2, ray.origin, ray.direction, t,
-                                     u, v) &&
-                t < tnear) {
+                u, v) &&
+                t < tnear)
+            {
                 tnear = t;
                 index = k;
                 intersect |= true;
@@ -160,8 +168,8 @@ public:
     Bounds3 getBounds() { return bounding_box; }
 
     void getSurfaceProperties(const Vector3f& P, const Vector3f& I,
-                              const uint32_t& index, const Vector2f& uv,
-                              Vector3f& N, Vector2f& st) const
+        const uint32_t& index, const Vector2f& uv,
+        Vector3f& N, Vector2f& st) const
     {
         const Vector3f& v0 = vertices[vertexIndex[index * 3]];
         const Vector3f& v1 = vertices[vertexIndex[index * 3 + 1]];
@@ -181,28 +189,32 @@ public:
         float pattern =
             (fmodf(st.x * scale, 1) > 0.5) ^ (fmodf(st.y * scale, 1) > 0.5);
         return lerp(Vector3f(0.815, 0.235, 0.031),
-                    Vector3f(0.937, 0.937, 0.231), pattern);
+            Vector3f(0.937, 0.937, 0.231), pattern);
     }
 
     Intersection getIntersection(Ray ray)
     {
         Intersection intersec;
 
-        if (bvh) {
+        if (bvh)
+        {
             intersec = bvh->Intersect(ray);
         }
 
         return intersec;
     }
-    
-    void Sample(Intersection &pos, float &pdf){
+
+    void Sample(Intersection& pos, float& pdf)
+    {
         bvh->Sample(pos, pdf);
         pos.emit = m->getEmission();
     }
-    float getArea(){
+    float getArea()
+    {
         return area;
     }
-    bool hasEmit(){
+    bool hasEmit()
+    {
         return m->hasEmission();
     }
 
@@ -222,7 +234,7 @@ public:
 
 inline bool Triangle::intersect(const Ray& ray) { return true; }
 inline bool Triangle::intersect(const Ray& ray, float& tnear,
-                                uint32_t& index) const
+    uint32_t& index) const
 {
     return false;
 }
@@ -253,6 +265,15 @@ inline Intersection Triangle::getIntersection(Ray ray)
     t_tmp = dotProduct(e2, qvec) * det_inv;
 
     // TODO find ray triangle intersection
+
+    if (t_tmp < 0)
+        return inter;
+    inter.distance = t_tmp;
+    inter.happened = true;
+    inter.m = m;
+    inter.obj = this;
+    inter.normal = normal;
+    inter.coords = ray(t_tmp);
 
     return inter;
 }
