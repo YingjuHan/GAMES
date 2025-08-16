@@ -69,15 +69,6 @@ function GAMES202Main() {
 	// loadOBJ(renderer, 'assets/basic/', 'sphere', 'PhongMaterial', sphereTransform);
 	//loadOBJ(renderer, 'assets/basic/', 'plane', 'PhongMaterial', floorTransform);
 
-
-	function createGUI() {
-		const gui = new dat.gui.GUI();
-		// const panelModel = gui.addFolder('Model properties');
-		// panelModelTrans.add(GUIParams, 'x').name('X');
-		// panelModel.open();
-	}
-	createGUI();
-
 	function mainLoop(now) {
 		cameraControls.update();
 

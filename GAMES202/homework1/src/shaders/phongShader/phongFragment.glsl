@@ -83,29 +83,102 @@ void uniformDiskSamples( const in vec2 randomSeed ) {
   }
 }
 
-float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
-	return 1.0;
+// 遮挡物平均深度
+float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
+  poissonDiskSamples(uv);
+  float totalDepth = 0.0;
+  int blockCount = 0;
+
+  for(int i = 0;i < NUM_SAMPLES; i++){
+    vec2 simpleUV = uv + poissonDisk[i] / 2048.0 * 50.0;
+    float shadowMapDepth = unpack(vec4(texture2D(uShadowMap,simpleUV).rgb, 1.0));
+    if(zReceiver > (shadowMapDepth)){
+      totalDepth += shadowMapDepth;
+      blockCount +=1;
+    }
+  }
+
+
+  //没有遮挡
+  if(blockCount ==0){
+    return -1.0;
+  }
+
+  //完全遮挡
+  if(blockCount==NUM_SAMPLES){
+    return 2.0;
+  }
+
+	return totalDepth/float( blockCount );
+}
+
+// 计算阴影偏移值以防止阴影 acne  artifacts
+// 阴影偏移是解决自遮挡问题的关键技术，通过微小偏移避免表面像素错误地遮挡自身
+float Bias() {
+  // 获取标准化的光源方向向量
+  vec3 lightDir = normalize(uLightPos);
+  // 获取标准化的表面法向量
+  vec3 normal = normalize(vNormal);
+  // 计算动态偏移值：
+  // - 当表面与光线垂直时(dot=1)，偏移最小(0.005)
+  // - 当表面与光线夹角增大时(dot减小)，偏移线性增大(最大0.05)
+  float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+  return  bias;
 }
 
 float PCF(sampler2D shadowMap, vec4 coords) {
-  return 1.0;
+  float bias = Bias();
+  float visibility = 0.0;
+  float currentDepth = coords.z;
+  float filterSize = 1.0 / 2048.0 * 10.0;
+  // poissonDiskSamples(coords.xy);
+  uniformDiskSamples(coords.xy);
+  for (int i = 0; i < PCF_NUM_SAMPLES; i++) {
+    vec2 textcoords = poissonDisk[i] * filterSize + coords.xy;
+    float closeDepth = unpack(vec4(texture2D(shadowMap, textcoords).xyz, 1.0));
+    visibility += closeDepth < currentDepth - bias ? 0.0 : 1.0;
+  }
+  return visibility / float(PCF_NUM_SAMPLES);
 }
 
-float PCSS(sampler2D shadowMap, vec4 coords){
+float PCSS(sampler2D shadowMap, vec4 coords) {
+  float bias = Bias();
 
   // STEP 1: avgblocker depth
+  float avgBlockerDepth = findBlocker(shadowMap, coords.xy, coords.z);
+  if(avgBlockerDepth < 0.0){
+    return 1.0;
+  }
+
+  if (avgBlockerDepth > 1.0+EPS){
+    return 0.0;
+  }
 
   // STEP 2: penumbra size
+  float penumbraSize = (coords.z - avgBlockerDepth) / avgBlockerDepth;
 
   // STEP 3: filtering
-  
-  return 1.0;
+  float sum = 0.0;
+  float filterSize = 1.0 / 2048.0;
+  for(int i = 0; i < NUM_SAMPLES; i++){
+    vec2 simpleUV = coords.xy + poissonDisk[i] * filterSize * penumbraSize;
 
+    float shadowMapDepth = unpack(vec4(texture2D(uShadowMap, simpleUV).rgb, 1.0)) + bias;
+    sum += coords.z > shadowMapDepth ? 0.0 : 1.0;
+  }
+
+  return sum / float(NUM_SAMPLES);
 }
 
 
-float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
-  return 1.0;
+float useShadowMap(sampler2D shadowMap, vec4 shadowCoord) {
+  float bias = Bias();
+  vec4 depthPack = texture2D(shadowMap, shadowCoord.xy); // 从阴影贴图中采样深度值
+  float depthUnpack = unpack(depthPack); // 解包深度值
+  if (depthUnpack > shadowCoord.z - bias) { // 检查当前片段是否在阴影中
+    return 1.0;
+  }
+  return 0.0;
 }
 
 vec3 blinnPhong() {
@@ -117,8 +190,7 @@ vec3 blinnPhong() {
   vec3 lightDir = normalize(uLightPos);
   vec3 normal = normalize(vNormal);
   float diff = max(dot(lightDir, normal), 0.0);
-  vec3 light_atten_coff =
-      uLightIntensity / pow(length(uLightPos - vFragPos), 2.0);
+  vec3 light_atten_coff = uLightIntensity / pow(length(uLightPos - vFragPos), 2.0);
   vec3 diffuse = diff * light_atten_coff * color;
 
   vec3 viewDir = normalize(uCameraPos - vFragPos);
@@ -133,13 +205,18 @@ vec3 blinnPhong() {
 
 void main(void) {
 
+
   float visibility;
-  //visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
-  //visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
-  //visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
+  // perform perspective divide 执行透视划分
+  vec3 projCoords = vPositionFromLight.xyz / vPositionFromLight.w;
+  // transform to [0,1] range 变换到[0,1]的范围
+  vec3 shadowCoord = projCoords * 0.5 + 0.5;
+  // visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
+  // visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
+  visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
 
   vec3 phongColor = blinnPhong();
 
-  //gl_FragColor = vec4(phongColor * visibility, 1.0);
-  gl_FragColor = vec4(phongColor, 1.0);
+  gl_FragColor = vec4(phongColor * visibility, 1.0);
+  //gl_FragColor = vec4(phongColor, 1.0);
 }
