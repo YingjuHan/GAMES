@@ -93,6 +93,7 @@ add_executable(nori
   src/prt.cpp
   ext/spherical-harmonics/sh/spherical_harmonics.cc
   ext/spherical-harmonics/sh/default_image.cc
+  src/normals.cpp
 )
 
 add_definitions(${NANOGUI_EXTRA_DEFS})
