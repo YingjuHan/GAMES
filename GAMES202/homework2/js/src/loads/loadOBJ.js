@@ -62,7 +62,7 @@ function loadOBJ(renderer, path, name, objMaterial, transform) {
 									console.log(PRTMaterial);
 									material = buildPRTMaterial(colorMap, mat.specular.toArray(), light, Translation, Scale, "./src/shaders/prtShader/prtVertex.glsl", "./src/shaders/prtShader/prtFragment.glsl");
 									//要加上envmapid, 因为里面存了好几个light.txt, 不止一个
-									//material = buildPRTMaterial(precomputeL[guiParams.envmapId],"./src/shaders/prtShader/prtVertex.glsl", "./src/shaders/prtShader/prtFragment.glsl");
+									// material = buildPRTMaterial(precomputeL[guiParams.envmapId],"./src/shaders/prtShader/prtVertex.glsl", "./src/shaders/prtShader/prtFragment.glsl");
 									break;
 
 								case 'SkyBoxMaterial':
