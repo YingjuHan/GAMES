@@ -191,7 +191,7 @@ vec3 EvalSSReflect(vec3 wi, vec3 wo, vec2 uv) {
 }
 
 // 定义采样数量
-#define SAMPLE_NUM 1
+#define SAMPLE_NUM 2
 
 /**
  * 主函数 EvalDiffuse * EvalDirectionalLight

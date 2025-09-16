@@ -3,6 +3,14 @@ var gl, gl_draw_buffers;
 var bufferFBO;
 var bumpMap;
 
+// Edit Start
+var windowWidth;
+var windowHeight;
+var mipMapLevel;
+var depthMeshRender;
+var depthDebugMeshRender;
+// Edit End
+
 GAMES202Main();
 
 function GAMES202Main() {
@@ -11,31 +19,36 @@ function GAMES202Main() {
 	canvas.width = window.screen.width;
 	canvas.height = window.screen.height;
 	// Init gl
-	gl = canvas.getContext('webgl');
+	windowWidth = window.screen.width;
+	windowHeight = window.screen.height;
+
+	gl = canvas.getContext('webgl2');
 	if (!gl) {
 		alert('Unable to initialize WebGL. Your browser or machine may not support it.');
 		return;
 	}
-	gl.getExtension('OES_texture_float');
-	gl_draw_buffers = gl.getExtension('WEBGL_draw_buffers');
-	var maxdb = gl.getParameter(gl_draw_buffers.MAX_DRAW_BUFFERS_WEBGL);
-    console.log('MAX_DRAW_BUFFERS_WEBGL: ' + maxdb);
+
+	let ext = gl.getExtension('EXT_color_buffer_float')
+	if (!ext) {
+		alert("Need EXT_color_buffer_float");
+		return;
+	}
+	// Edit End
 
 	// Add camera
 	const camera = new THREE.PerspectiveCamera(75, gl.canvas.clientWidth / gl.canvas.clientHeight, 1e-3, 1000);
 	let cameraPosition, cameraTarget;
-	// /*
+
 	// Cube
 	cameraPosition = [6, 1, 0]
 	cameraTarget = [0, 0, 0]
-	// */
-	/*
+
 	// Cave
 	cameraPosition = [4.18927, 1.0313, 2.07331]
 	cameraTarget = [2.92191, 0.98, 1.55037]
-	*/
+	
 	camera.position.set(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
-	camera.fbo = new FBO(gl);
+	camera.fbo = new FBO(gl, 5);
 
 	// Add resize listener
 	function setSize(width, height) {
@@ -89,6 +102,46 @@ function GAMES202Main() {
 	// loadGLTF(renderer, 'assets/cube/', 'cube2', 'SSRMaterial');
 	// loadGLTF(renderer, 'assets/cave/', 'cave', 'SSRMaterial');
 
+	// Edit Start
+	// mipMapLevel = 5;
+	mipMapLevel = 1 + Math.floor(Math.log2(Math.max(window.screen.width, window.screen.height)));
+
+	let currentWidth = window.screen.width;
+	let currentHeight = window.screen.height;
+	let depthTexture = camera.fbo.textures[1];
+
+	for (let i = 0; i < mipMapLevel; i++) {
+		let lastWidth = currentWidth;
+		let lastHeight = currentHeight;
+
+		if(i >0){
+			// calculate next viewport size
+			currentWidth /= 2;
+			currentHeight /= 2;
+
+			currentWidth = Math.floor(currentWidth);
+			currentHeight = Math.floor(currentHeight);
+
+			// ensure that the viewport size is always at least 1x1
+			currentWidth = currentWidth > 0 ? currentWidth : 1;
+			currentHeight = currentHeight > 0 ? currentHeight : 1;
+		}
+		console.log("MipMap Level", i, ":", currentWidth, "x", currentHeight);
+		let fb = new FBO(gl, 1, currentWidth, currentHeight);
+		fb.lastWidth = lastWidth;
+		fb.lastHeight = lastHeight;
+		fb.width = currentWidth;
+		fb.height = currentHeight;
+		renderer.addDepthFBO(fb);
+
+	}
+
+	depthMaterial = buildSceneDepthMipmapMaterial(depthTexture, "./src/shaders/sceneDepthShader/depthVertex.glsl", "./src/shaders/sceneDepthShader/depthFragment.glsl");
+	depthMaterial.then((data) => {
+		depthMeshRender = new MeshRender(renderer.gl, Mesh.Quad(setTransform(0, 0, 0, 1, 1, 1)), data);
+	});
+	
+
 	function createGUI() {
 		const gui = new dat.gui.GUI();
 		const lightPanel = gui.addFolder('Directional Light');
@@ -99,12 +152,17 @@ function GAMES202Main() {
 	}
 	createGUI();
 
+	// deltaTime实现
+	let prevTime = 0;
+
 	function mainLoop(now) {
 		cameraControls.update();
-
-		renderer.render();
+		let deltaime = (now - prevTime) / 1000;
+		renderer.render(now, deltaime);
 		requestAnimationFrame(mainLoop);
+		prevTime = now;
 	}
+
 	requestAnimationFrame(mainLoop);
 }
 

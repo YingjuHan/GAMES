@@ -3,6 +3,7 @@ class WebGLRenderer {
     shadowMeshes = [];
     bufferMeshes = [];
     lights = [];
+    depthFBOs = [];
 
     constructor(gl, camera) {
         this.gl = gl;
@@ -18,6 +19,7 @@ class WebGLRenderer {
     addMeshRender(mesh) { this.meshes.push(mesh); }
     addShadowMeshRender(mesh) { this.shadowMeshes.push(mesh); }
     addBufferMeshRender(mesh) { this.bufferMeshes.push(mesh); }
+    addDepthFBO(fbo) { this.depthFBOs.push(fbo); }
 
     render() {
         console.assert(this.lights.length != 0, "No light");
@@ -60,6 +62,38 @@ class WebGLRenderer {
             // this.bufferMeshes[i].draw(this.camera);
         }
         // return
+
+        // Depth Mipmap pass
+        for (let lv = 0; lv < this.depthFBOs.length && depthMeshRender != null; lv++) {
+            gl.useProgram(depthMeshRender.shader.program.glShaderProgram);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthFBOs[lv]);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            let updatedParamters = {
+                "uLastMipLevel": lv - 1,
+                "uLastMipSize": [this.depthFBOs[lv].lastWidth, this.depthFBOs[lv].lastHeight, 0],
+                "uCurLevel": lv,
+            };
+
+            if (lv != 0) {
+                updatedParamters.uDepthMipmap = this.depthFBOs[lv - 1].textures[0];
+            }
+
+            depthMeshRender.bindGeometryInfo();
+            depthMeshRender.updateMaterialParameters(updatedParamters);
+            depthMeshRender.bindMaterialParameters();
+
+            gl.viewport(0, 0, this.depthFBOs[lv].witdth, this.depthFBOs[lv].height);
+            {
+                const vertexCount = depthMeshRender.mesh.count;
+                const type = gl.UNSIGNED_SHORT;
+                const offset = 0;
+                gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+            }
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         // Camera pass
         for (let i = 0; i < this.meshes.length; i++) {

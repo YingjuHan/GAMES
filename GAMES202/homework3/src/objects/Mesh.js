@@ -87,4 +87,25 @@ class Mesh {
 
 		return new Mesh({ name: 'aVertexPosition', array: new Float32Array(positions) }, null, null, indices, transform);
 	}
+
+	static Quad(transform) {
+		const positions = [
+			-1.0, 1.0, 0.0,
+			-1.0, -1.0, 0.0,
+			1.0, 1.0, 0.0,
+			1.0, -1.0, 0.0,
+		];
+
+		const textcoords = [
+			0.0, 1.0,
+			0.0, 0.0,
+			1.0, 1.0,
+			1.0, 0.0,
+		];
+
+		const indices = [0, 1, 2, 1, 2, 3]; // front
+
+		return new Mesh({ name: 'aVertexPosition', array: new Float32Array(positions) }, null, { name: 'aTextureCoord', array: new Float32Array(textcoords) }, indices, transform);
+	}
 }
+
