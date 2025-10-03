@@ -1,6 +1,6 @@
 
 # Add source to this project's executable.
-add_executable (engine 
+add_executable (engine
   main.cpp
   vk_types.h
   vk_initializers.cpp
@@ -17,6 +17,8 @@ add_executable (engine
   vk_loader.cpp
   camera.cpp
   camera.h
+  meshes.h
+  meshes.cpp
 )
 
 set_property(TARGET engine PROPERTY CXX_STANDARD 20)
