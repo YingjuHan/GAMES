@@ -90,6 +90,10 @@ public:
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
 
+	VkPipeline _trianglePipeline;
+	VkPipelineLayout _trianglePipelineLayout;
+	
+
 	std::vector<VkFramebuffer> _framebuffers;
 	std::vector<VkImage> _swapchainImages;
 	std::vector<VkImageView> _swapchainImageViews;
@@ -121,6 +125,9 @@ public:
 	void draw();
 
 	void draw_background(VkCommandBuffer cmd);
+
+	void draw_geometry(VkCommandBuffer cmd);
+
 	void draw_imgui(VkCommandBuffer cmd,  VkImageView targetImageView);
 
 	//run main loop
@@ -140,6 +147,10 @@ private:
 	void init_commands();
 
 	void init_pipelines();
+
+	void init_background_pipelines();
+
+	void init_triangle_pipeline();
 
 	void init_descriptors();
 
