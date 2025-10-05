@@ -4,6 +4,7 @@
 #pragma once
 
 #include <vk_types.h>
+#include <vk_loader.h>
 #include <vector>
 #include "vk_mem_alloc.h"
 #include <deque>
@@ -97,6 +98,10 @@ public:
 	VkPipeline _meshPipeline;
 
 	GPUMeshBuffers rectangle;
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+
+	AllocatedImage _drawImage;
+	AllocatedImage _depthImage;
 
 	std::vector<VkFramebuffer> _framebuffers;
 	std::vector<VkImage> _swapchainImages;
@@ -112,9 +117,6 @@ public:
 	VkFence _immFence;
 	VkCommandBuffer _immCommandBuffer;
 	VkCommandPool _immCommandPool;
-
-	//draw resources
-	AllocatedImage _drawImage;
 
 	std::vector<ComputeEffect> backgroundEffects;
 
