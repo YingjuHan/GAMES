@@ -4,14 +4,14 @@
 #pragma once
 
 #include <vk_types.h>
-#include <vk_loader.h>
 #include <vector>
 #include "vk_mem_alloc.h"
 #include <deque>
 #include <functional>
 #include "vk_descriptors.h"
+#include "vk_loader.h"
 
-struct DeletionQueue 
+struct DeletionQueue
 {
 	std::deque<std::function<void()>> deletors;
 
@@ -61,8 +61,8 @@ class VulkanEngine {
 public:
 
 	bool _isInitialized{ false };
-	int _frameNumber {0};
-	bool stop_rendering{false};
+	int _frameNumber{ 0 };
+
 	VkExtent2D _windowExtent{ 1700 , 900 };
 
 	struct SDL_Window* _window{ nullptr };
@@ -78,30 +78,19 @@ public:
 
 
 	VkQueue _graphicsQueue;
-	uint32_t _graphicsQueueFamily;	
+	uint32_t _graphicsQueueFamily;
 
 	VkSurfaceKHR _surface;
 	VkSwapchainKHR _swapchain;
 	VkFormat _swapchainImageFormat;
 	VkExtent2D _swapchainExtent;
 	VkExtent2D _drawExtent;
+	float renderScale = 1.f;
 
 	DescriptorAllocator globalDescriptorAllocator;
 
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
-
-	VkPipeline _trianglePipeline;
-	VkPipelineLayout _trianglePipelineLayout;
-
-	VkPipelineLayout _meshPipelineLayout;
-	VkPipeline _meshPipeline;
-
-	GPUMeshBuffers rectangle;
-	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
-
-	AllocatedImage _drawImage;
-	AllocatedImage _depthImage;
 
 	std::vector<VkFramebuffer> _framebuffers;
 	std::vector<VkImage> _swapchainImages;
@@ -113,14 +102,30 @@ public:
 	DeletionQueue _mainDeletionQueue;
 
 	VmaAllocator _allocator; //vma lib allocator
+
+	VkPipelineLayout _trianglePipelineLayout;
+	VkPipeline _trianglePipeline;
+
+	VkPipelineLayout _meshPipelineLayout;
+	VkPipeline _meshPipeline;
+
+	GPUMeshBuffers rectangle;
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+
+
 	// immediate submit structures
 	VkFence _immFence;
 	VkCommandBuffer _immCommandBuffer;
 	VkCommandPool _immCommandPool;
 
-	std::vector<ComputeEffect> backgroundEffects;
+	//draw resources
 
+	AllocatedImage _drawImage;
+	AllocatedImage _depthImage;
+
+	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{ 0 };
+
 	//initializes everything in the engine
 	void init();
 
@@ -134,7 +139,7 @@ public:
 
 	void draw_geometry(VkCommandBuffer cmd);
 
-	void draw_imgui(VkCommandBuffer cmd,  VkImageView targetImageView);
+	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 
 	//run main loop
 	void run();
@@ -144,27 +149,25 @@ public:
 	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
-
 	void destroy_buffer(const AllocatedBuffer& buffer);
 
-
+	bool resize_requested{ false };
+	bool freeze_rendering{ false };
 private:
-	void rebuild_swapchain();
 
 	void init_vulkan();
 
 	void init_swapchain();
 	void create_swapchain(uint32_t width, uint32_t height);
 	void destroy_swapchain();
-
+	void resize_swapchain();
 	void init_commands();
-
-	void init_pipelines();
 
 	void init_background_pipelines();
 
-	void init_triangle_pipeline();
+	void init_pipelines();
 
+	void init_triangle_pipeline();
 	void init_mesh_pipeline();
 
 	void init_descriptors();
